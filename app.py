@@ -1,14 +1,13 @@
 import streamlit as st
 import random
-import time
 
 # -----------------------------
 # 페이지 설정
 # -----------------------------
-st.set_page_config(page_title="가위바위보 게임", layout="centered")
+st.set_page_config(page_title="가위바위보", layout="centered")
 
 # -----------------------------
-# 스타일 (간단 UI)
+# 스타일
 # -----------------------------
 st.markdown("""
 <style>
@@ -29,16 +28,6 @@ div.stButton > button {
     font-size: 18px;
     font-weight: bold;
 }
-
-div.stButton > button:hover {
-    background-color: #d9e6ff;
-    color: black;
-}
-
-/* 오른쪽 아래 종료 버튼 */
-div[data-testid="column"] {
-    text-align: center;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -55,7 +44,7 @@ if "com_score" not in st.session_state:
     st.session_state.com_score = 0
 
 if "result" not in st.session_state:
-    st.session_state.result = ""
+    st.session_state.result = None
 
 if "user_choice" not in st.session_state:
     st.session_state.user_choice = ""
@@ -63,90 +52,87 @@ if "user_choice" not in st.session_state:
 if "com_choice" not in st.session_state:
     st.session_state.com_choice = ""
 
-if "show_winner" not in st.session_state:
-    st.session_state.show_winner = False
+if "winner" not in st.session_state:
+    st.session_state.winner = None
+
 
 # -----------------------------
-# 함수: 승패 판정
+# 승패 판정
 # -----------------------------
-def judge(user, com):
-    if user == com:
+def judge(u, c):
+    if u == c:
         return "draw"
-    elif (
-        (user == "가위" and com == "보") or
-        (user == "바위" and com == "가위") or
-        (user == "보" and com == "바위")
-    ):
+    if (u == "가위" and c == "보") or (u == "바위" and c == "가위") or (u == "보" and c == "바위"):
         return "win"
-    else:
-        return "lose"
+    return "lose"
+
 
 # -----------------------------
 # 메인 화면
 # -----------------------------
 if st.session_state.page == "home":
 
-    st.markdown("<h1 style='text-align:center;'>🎮 가위바위보 게임</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center;'>🎮 가위바위보</h1>", unsafe_allow_html=True)
 
     if st.button("게임 시작", use_container_width=True):
         st.session_state.page = "game"
+        st.session_state.user_score = 0
+        st.session_state.com_score = 0
         st.rerun()
+
 
 # -----------------------------
 # 게임 화면
 # -----------------------------
 else:
 
-    # 점수판
     st.markdown(
         f"<h3 style='text-align:center;'>사용자 {st.session_state.user_score} : {st.session_state.com_score} 컴퓨터</h3>",
         unsafe_allow_html=True
     )
 
-    st.write("---")
-
-    # 우승 체크
+    # -------------------------
+    # 승리 조건 체크
+    # -------------------------
     if st.session_state.user_score >= 5 or st.session_state.com_score >= 5:
-        st.session_state.show_winner = True
+        st.session_state.winner = "user" if st.session_state.user_score >= 5 else "com"
 
-    # 우승 화면
-    if st.session_state.show_winner:
-        if st.session_state.user_score >= 5:
-            st.markdown("<h1 style='text-align:center;'>🏆 사용자 승리!</h1>", unsafe_allow_html=True)
+        if st.session_state.winner == "user":
+            st.success("🏆 사용자 승리!")
         else:
-            st.markdown("<h1 style='text-align:center;'>🏆 컴퓨터 승리!</h1>", unsafe_allow_html=True)
+            st.error("🏆 컴퓨터 승리!")
 
-        time.sleep(3)
-
-        # 초기화 후 메인으로
         st.session_state.user_score = 0
         st.session_state.com_score = 0
         st.session_state.page = "home"
-        st.session_state.show_winner = False
         st.rerun()
 
+    # -------------------------
     # 결과 표시
-    if st.session_state.result:
-        st.markdown(f"### 당신: {st.session_state.user_choice}")
-        st.markdown(f"### 컴퓨터: {st.session_state.com_choice}")
+    # -------------------------
+    if st.session_state.result is not None:
+
+        st.write(f"당신: {st.session_state.user_choice}")
+        st.write(f"컴퓨터: {st.session_state.com_choice}")
 
         if st.session_state.result == "win":
-            st.success("당신이 이겼습니다!")
+            st.success("승리!")
         elif st.session_state.result == "lose":
-            st.error("컴퓨터가 이겼습니다!")
+            st.error("패배!")
         else:
-            st.info("무승부!")
+            st.info("무승부")
 
-        time.sleep(2)
-
-        st.session_state.result = ""
+        # 자동 초기화 (sleep 없이)
+        st.session_state.result = None
         st.rerun()
 
+
+    # -------------------------
     # 선택 버튼
+    # -------------------------
     col1, col2, col3 = st.columns(3)
 
-    if col1.button("가위"):
-        user = "가위"
+    def play(user):
         com = random.choice(["가위", "바위", "보"])
 
         st.session_state.user_choice = user
@@ -162,48 +148,24 @@ else:
 
         st.rerun()
 
-    if col2.button("바위"):
-        user = "바위"
-        com = random.choice(["가위", "바위", "보"])
+    with col1:
+        if st.button("가위"):
+            play("가위")
 
-        st.session_state.user_choice = user
-        st.session_state.com_choice = com
+    with col2:
+        if st.button("바위"):
+            play("바위")
 
-        result = judge(user, com)
-        st.session_state.result = result
-
-        if result == "win":
-            st.session_state.user_score += 1
-        elif result == "lose":
-            st.session_state.com_score += 1
-
-        st.rerun()
-
-    if col3.button("보"):
-        user = "보"
-        com = random.choice(["가위", "바위", "보"])
-
-        st.session_state.user_choice = user
-        st.session_state.com_choice = com
-
-        result = judge(user, com)
-        st.session_state.result = result
-
-        if result == "win":
-            st.session_state.user_score += 1
-        elif result == "lose":
-            st.session_state.com_score += 1
-
-        st.rerun()
-
-    st.write("---")
-
-    # 종료 버튼 (오른쪽 아래)
-    col1, col2, col3 = st.columns([6, 1, 1])
     with col3:
-        if st.button("종료"):
-            st.session_state.user_score = 0
-            st.session_state.com_score = 0
-            st.session_state.page = "home"
-            st.session_state.result = ""
-            st.rerun()
+        if st.button("보"):
+            play("보")
+
+    # -------------------------
+    # 종료 버튼
+    # -------------------------
+    if st.button("종료"):
+        st.session_state.page = "home"
+        st.session_state.user_score = 0
+        st.session_state.com_score = 0
+        st.session_state.result = None
+        st.rerun()
